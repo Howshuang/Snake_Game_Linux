@@ -10,13 +10,17 @@ const int WINDOW_HEIGHT = TILE_SIZE * GRID_HEIGHT; // 窗口高度
 
 // 建構函數：初始化遊戲窗口和元件
 Game::Game() :
+
     snake(),
     fruit(),
     scoreboard(),
     window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Snake Game"),
+ 
     isPaused(false),
-    gameOver(false) 
+    gameOver(false)
     {
+    
+    
     tileTexture.loadFromFile("assets/textures/white.png");
     tileSprite.setTexture(tileTexture);
     
@@ -31,8 +35,60 @@ Game::Game() :
 
     gameOverTextTexture.loadFromFile("assets/textures/gameover.png");
     gameOverTextSprite.setTexture(gameOverTextTexture);
+    
+    if(!bgm.openFromFile("assets/audio/bgm.wav")){              //音檔開啟 建議查一下定義我不太確定
+        std::cerr << "Error: Failed to load bgm.wav" << std::endl;
+        return;
+    }
+    
+    
+    
+    //#確認他會重播
+    bgm.setLoop(true);
+    bgm.setVolume(50);
+    //#播放
+    bgm.play();
+    
+   
+    if(!uu.loadFromFile("assets/audio/uu.wav")){              //音效加載
+        std::cerr << "Error: Failed to load uu.wav" << std::endl;
 
-    if (!font.loadFromFile("assets/fonts/font.ttf")) {
+        return;
+    }
+    Uu.setBuffer(uu);   //放進緩存
+    Uu.setVolume(150);
+     if(!du.loadFromFile("assets/audio/du.wav")){              
+        std::cerr << "Error: Failed to load du.wav" << std::endl;
+        
+        return;
+    }
+    Du.setBuffer(du);
+    Du.setVolume(150);
+     if(!lu.loadFromFile("assets/audio/lu.wav")){            
+        std::cerr << "Error: Failed to load lu.wav" << std::endl;
+        
+        return;
+    }
+    Lu.setBuffer(lu);
+    Lu.setVolume(150);
+     if(!ru.loadFromFile("assets/audio/ru.wav")){          
+        std::cerr << "Error: Failed to load ru.wav" << std::endl;
+        
+        return;
+    }
+    Ru.setBuffer(ru);
+    Ru.setVolume(150);
+    if(!eat_effect.loadFromFile("assets/audio/eat_effect.wav")){  
+        std::cerr << "Error: Failed to load eat_effect.wav" << std::endl;
+       
+        return;
+    }
+    Eat_effect.setBuffer(eat_effect);
+    Eat_effect.setVolume(150);
+    
+
+
+    if (!font.loadFromFile("assets/fonts/font.ttf")) { 
         std::cerr << "Error: Failed to load font.ttf" << std::endl;
         return;
     }
@@ -52,17 +108,21 @@ Game::Game() :
          std::cerr << "Error: Failed to load font5.ttf" << std::endl;
          return;
     }
+    
 }
 
 
-void Game::run() {
+void Game::run() { 
     //創建一個時鐘物件
     sf::Clock clock;
     float timer = 0.0f, delay = 0.1f;
 
     // 主遊戲循環：當窗口未關閉時繼續執行
+    
     while (window.isOpen()) {
+
         // 計算自上次重置以來的經過時間（秒）
+        
         float elapsedTime = clock.getElapsedTime().asSeconds();
         clock.restart();
         timer += elapsedTime;
@@ -72,11 +132,13 @@ void Game::run() {
         if (!isPaused && timer > delay && !gameOver) {
             timer = 0.0f;
             update();
+        
         }
 
         render();
     }
 }
+ 
 // 處理输入事件
 void Game::handleInput() {
     sf::Event event;
@@ -87,10 +149,18 @@ void Game::handleInput() {
         if (event.type == sf::Event::KeyPressed) {
             // debug: 印出所有KeyPressed
             std::cout << "Key pressed: " << event.key.code << std::endl;
-
+            
             // 檢查是否按下 P
             if (event.key.code == sf::Keyboard::P) {
                 isPaused = !isPaused; // 切換暫停狀態
+
+                //#按p可能是暫停或開始
+                if(isPaused){
+                    bgm.pause();
+                }else{
+                    bgm.play();
+                }
+             
             }
             // 檢查是否按下 ESC
             if (event.key.code == sf::Keyboard::Escape) {
@@ -99,15 +169,29 @@ void Game::handleInput() {
             // 檢查是否按下 R
             if (event.key.code == sf::Keyboard::R) {
                 reset();
+                //#按r遊戲重新開始，音樂也要
+                bgm.play();
             }
         }
     }
     // 更改蛇的方向
-    if (!isPaused) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) snake.changeDirection(Left);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) snake.changeDirection(Right);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) snake.changeDirection(Up);
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) snake.changeDirection(Down);
+    if (!isPaused) {                    
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+            snake.changeDirection(Left);
+             if(!isPaused)Lu.play();//方向音效u，多一條是否暫停的判斷，防止暫停後一直uuuuuuu
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+            snake.changeDirection(Right);
+            if(!isPaused)Ru.play();//u
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+            snake.changeDirection(Up);
+            if(!isPaused)Uu.play();//u
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+            snake.changeDirection(Down);
+            if(!isPaused)Du.play();//u
+        }
     }
 }
 
@@ -127,14 +211,17 @@ void Game::update() {
 
     if(snake.isOutOfBounds()) {
         gameOver = true;
+        //#撞牆音樂停止
+        bgm.stop();     
         return;
     }
 
     // 如果蛇吃到水果，增加長度並重新生成水果
     if (snake.getHeadPosition() == sf::Vector2i(fruit.getX(), fruit.getY())) {
-        snake.grow();
-        fruit.respawn();
+        fruit.respawn();               /////////////////<-
         scoreboard.increaseScore(10);
+        snake.grow();
+        Eat_effect.play();   //吃水果音效 喔伊系ww
     }
 }
 
@@ -212,6 +299,7 @@ void Game::render() {
 
     // 顯示已繪製的畫面
     window.display();
+
 }
 
 // 重置遊戲
@@ -221,4 +309,5 @@ void Game::reset() {
     scoreboard.resetScore();
     isPaused = false;
     gameOver = false;
+    
 }
