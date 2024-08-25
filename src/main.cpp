@@ -1,8 +1,6 @@
 // main.cpp
-#include "../include/Snake.h"
-#include "../include/Game.h"
-#include "../include/Fruit.h"
 
+#include "../include/Game.h"
 #include <iostream>
 
 
